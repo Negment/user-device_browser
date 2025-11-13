@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title></title> 
+  
+  <style>
+    body {
+      margin: 0;
+      font-family: "Helvetica Neue", "Helvetica", Arial, sans-serif;
+      color: #000; /* 全体を黒文字に */
+      line-height: 1.5em;
+      font-size: 16px; /* 文字を小さく */
+      background-color: white; 
+    }
+
+    #container {
+      width: auto;
+      margin: 0;
+      padding: 10px;
+    }
+
+    #result-output {
+      white-space: pre-wrap; /* <br>を有効にし、改行を維持 */
+      padding: 0;
+      border: none;
+      background-color: transparent;
+      color: #000;
+    }
+  </style>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+</head>
+<body>
+  <div id="container">
+    <p id="result-output"></p>
+  </div>
+
+  <script>
+"use strict";
+
+/**
+ * URLクエリから 'projects' パラメータの値 (プロジェクトID) を取得する関数
+ * @returns {string | null} プロジェクトID、または見つからなかった場合は null
+ */
+function getProjectIdFromUrl() {
+  const urlParams = new URLSearchParams(window.location.search);
+  
+  // ?projects=<プロジェクトID> から取得
+  const projectId = urlParams.get('projects');
+  
+  // 取得した値が数字のみであることを確認
+  if (projectId && /^\d+$/.test(projectId)) {
+    return projectId;
+  }
+  
+  return null;
+}
+
+/**
+ * 指定されたプロジェクトIDのJSONを取得し、User-Agentを分析して結果を出力するメイン関数
+ * @param {string} projectId - ScratchのプロジェクトID
+ */
+function loadAndAnalyze(projectId) {
+  // 1. プロジェクトトークンの取得 (TurboWarpプロキシ経由)
+  $.ajax({
+    url: `https://trampoline.turbowarp.org/proxy/projects/${projectId}`,
+    data: "",
+    dataType: "json",
+    success: function (response) {
+      let token = response["project_token"];
+      
+      // 2. プロジェクトJSONの取得
+      $.ajax({
+        url: `https://projects.scratch.mit.edu/${projectId}/?token=${token}`,
+        data: "",
+        dataType: "text", // 生のテキストとして取得
+        success: function (response) {
+          
+          // --- User-Agentの抽出・分析ロジック ---
+          // "agent":"..." の形式の文字列を正規表現で抽出
+          const agentRegex = /"agent"\s*:\s*"(.+?)"/s;
+          const match = response.match(agentRegex);
+          
+          if (match && match[1]) {
+            const userAgent = match[1];
+            
+            let os = '';
+            let browser = '';
+
+            // --- OSの判定 ---
+            if (/Windows NT 10.0/.test(userAgent)) {
+              os = 'Windows 10/11';
+            } else if (/iPhone/.test(userAgent)) {
+              os = 'iPhone (iOS)';
+            } else if (/iPad/.test(userAgent)) {
+              os = 'iPad (iPadOS)';
+            } else if (/Mac OS X/.test(userAgent) && !/iPhone|iPad/.test(userAgent)) {
+              os = 'Mac (macOS)';
+            } else if (/Android/.test(userAgent)) {
+              os = 'Android';
+            } else if (/Linux/.test(userAgent)) {
+              os = 'Linux';
+            }
+            
+            // --- ブラウザの判定 ---
+            if (/CriOS\/(\d+\.\d+)/.test(userAgent)) {
+              browser = 'Chrome for iOS (CriOS)';
+            } else if (/Edg\/(\d+\.\d+)/.test(userAgent)) {
+              browser = 'Edge';
+            } else if (/Chrome\/(\d+\.\d+)/.test(userAgent)) {
+              browser = 'Chrome';
+            } else if (/Safari\/(\d+\.\d+)/.test(userAgent) && !/Chrome|CriOS/.test(userAgent)) {
+              browser = 'Safari';
+            } else if (/Firefox\/(\d+\.\d+)/.test(userAgent)) {
+              browser = 'Firefox';
+            }
+
+            // データが取得できた場合のみ、指定フォーマットで出力
+            let outputText = '';
+            if (os) {
+              outputText += `device: ${os}<br>`;
+            }
+            if (browser) {
+              outputText += `browser: ${browser}`;
+            }
+
+            // User-Agentが見つかっても、OS/ブラウザが特定できない場合は何も出力しない
+            if (outputText) {
+              $('#result-output').html(outputText);
+            }
+            
+          } 
+          // User-Agent情報が見つからなかった場合、何も出力しない
+        },
+        error: function () {
+          // エラーが発生した場合のみ、エラーメッセージを出力
+          $('#result-output').text('エラー: プロジェクトIDが見つからないか、データ取得に失敗しました。');
+        }
+      });
+    },
+    error: function() {
+       // エラーが発生した場合のみ、エラーメッセージを出力
+      $('#result-output').text('エラー: プロジェクトトークンの取得に失敗しました。');
+    }
+  });
+}
+
+
+// 3. ページロード時に処理を開始
+$(document).ready(function() {
+  // ページタイトルをURL名（ホスト名）に設定
+  document.title = window.location.hostname;
+  
+  const projectId = getProjectIdFromUrl();
+  
+  if (projectId) {
+    // IDがあれば自動でロード・分析を開始
+    loadAndAnalyze(projectId);
+  } else {
+    // IDがない場合、利用例を出力
+    $('#result-output').html('urlにプロジェクトidが見つかりません。<br>利用例: yourdomain.com/?projects=123456789');
+  }
+});
+  </script>
+</body>
+</html>
