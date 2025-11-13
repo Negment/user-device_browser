@@ -136,13 +136,13 @@ function loadAndAnalyze(projectId) {
         },
         error: function () {
           // エラーが発生した場合のみ、エラーメッセージを出力
-          $('#result-output').text('エラー: プロジェクトIDが見つからないか、データ取得に失敗しました。');
+          $('#result-output').text('device: <br>browser: ');
         }
       });
     },
     error: function() {
        // エラーが発生した場合のみ、エラーメッセージを出力
-      $('#result-output').text('エラー: プロジェクトトークンの取得に失敗しました。');
+      $('#result-output').text('error');
     }
   });
 }
@@ -159,8 +159,7 @@ $(document).ready(function() {
     // IDがあれば自動でロード・分析を開始
     loadAndAnalyze(projectId);
   } else {
-    // IDがない場合、利用例を出力
-    $('#result-output').html('urlにプロジェクトidが見つかりません。<br>利用例: yourdomain.com/?projects=123456789');
+    $('#result-output').html('not entered!');
   }
 });
   </script>
