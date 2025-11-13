@@ -136,7 +136,7 @@ function loadAndAnalyze(projectId) {
         },
         error: function () {
           // エラーが発生した場合のみ、エラーメッセージを出力
-          $('#result-output').text('device: <br>browser: ');
+          $('#result-output').text('NotFound');
         }
       });
     },
@@ -159,7 +159,7 @@ $(document).ready(function() {
     // IDがあれば自動でロード・分析を開始
     loadAndAnalyze(projectId);
   } else {
-    $('#result-output').html('not entered!');
+    $('#result-output').html('Not entered!');
   }
 });
   </script>
